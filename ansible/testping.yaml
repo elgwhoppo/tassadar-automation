@@ -1,0 +1,7 @@
+---
+- name: Testing out ansible
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: ping it
+      ansible.builtin.ping:
