@@ -58,11 +58,6 @@ $diskNameData1 = $targetVirtualMachineName + '_DataDisk1'
 #Operating System Type (Windows/Linux)  
 $targetOStype = "Linux"
   
-#Size of destination Managed Disk(s) in GB  
-#User 0 size for disk if there is no other disk
-#$diskSize = 30
-#Now deterministaclly found
-  
 #Storage type for the desired cloned Managed Disk (Available values are Standard_LRS, Premium_LRS, StandardSSD_LRS, and UltraSSD_LRS)
 #https://learn.microsoft.com/en-us/powershell/module/azurerm.compute/new-azurermdiskconfig?view=azurermps-6.13.0#-skuname
 $storageTypeOS = 'Standard_LRS'
@@ -81,15 +76,10 @@ $targetVirtualMachineSize = 'Standard_B2ms'
 #*********************************
 
 Write-Host "Now creating" $targetVirtualMachineName "..."
-
 #Get the existing VM from which to clone from  
 $sourceVirtualMachine = Get-AzVM -ResourceGroupName $resourceGroupName -Name $sourceVirtualMachineName  
 
-#Get the storage account details to clone into 
-#$storageaccount = Get-AzureRmStorageAccount | Where-Object {$_.StorageAccountName -eq $cloneToStorageAccountName}
-# ^ not needed?
-
-#Set the subscription for the current session where the commands will execute  
+#Set the subscription for the current session where the commands will execute
 Select-AzureRmSubscription -SubscriptionId $subscriptionID
 
 #Create a new resource group to clone into if it does not exist already 
@@ -97,8 +87,7 @@ $newRgAlreadyExists = Get-AzureRmResourceGroup -Name $resourceGroupNameCloned
 If (!$newRgAlreadyExists) {New-AzResourceGroup -Name $resourceGroupNameCloned -Location $location} else {Write-Host "Resource group exists already. Skipping creation"}
 
 Write-Host "Taking snapshots of disks..."
-  
-#Create new OS VM Disk Snapshot from source VM 
+#Create new OS VM Disk Snapshot from source VM
 $diskSizeOS = $sourceVirtualMachine.StorageProfile.OsDisk.diskSizeGB
 $snapshotOSconfig = New-AzSnapshotConfig -SourceUri $sourceVirtualMachine.StorageProfile.OsDisk.ManagedDisk.Id -Location $location -CreateOption copy -DiskSizeGB $diskSizeOS -AccountType $storageTypeOS
 $snapshotOS = New-AzSnapshot -Snapshot $snapshotOSconfig -SnapshotName $snapshotNameOS -ResourceGroupName $resourceGroupName
@@ -126,11 +115,12 @@ $diskData0 = New-AzureRmDisk -Disk $diskData0 -ResourceGroupName $resourceGroupN
 $diskData1 = New-AzureRmDiskConfig -AccountType $storageTypeData1 -DiskSizeGB $diskSizeData1 -Location $location -CreateOption Copy -SourceResourceId $snapshotData1.Id
 $diskData1 = New-AzureRmDisk -Disk $diskData1 -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameData1
 
+Write-Host "Create VM Configuration..."
 #Initialize virtual machine configuration  
 $targetVirtualMachine = New-AzureRmVMConfig -VMName $targetVirtualMachineName -VMSize $targetVirtualMachineSize
   
 #Attach Managed Disks to target virtual machine. OS type depends variable set in destination variable section (Windows/Linux)  
-$targetVirtualMachine = Set-AzureRmVMOSDisk -VM $targetVirtualMachine -ManagedDiskId $diskOS.Id -CreateOption Attach Linux
+$targetVirtualMachine = Set-AzureRmVMOSDisk -VM $targetVirtualMachine -ManagedDiskId $diskOS.Id -CreateOption Attach -Linux
 $targetVirtualMachine = Add-AzVMDataDisk -VM $targetVirtualMachine -Name $diskNameData0 -CreateOption Attach -ManagedDiskId $diskData0.Id -Lun 0
 $targetVirtualMachine = Add-AzVMDataDisk -VM $targetVirtualMachine -Name $diskNameData1 -CreateOption Attach -ManagedDiskId $diskData1.Id -Lun 1
   
@@ -141,9 +131,13 @@ $subnet = $vnet.Subnets | Where-Object {$_.Name -eq $subnetName}
 # Create Network Interface for the VM without Public IP, and with the IP placed in the variables above 
 $nic = New-AzureRmNetworkInterface -Name ($targetVirtualMachineName.ToLower() + '_nic') -ResourceGroupName $resourceGroupNameCloned -Location $location -SubnetId $subnet.Id -PrivateIpAddress $targetVirtualMachineIP
 $targetVirtualMachine = Add-AzureRmVMNetworkInterface -VM $targetVirtualMachine -Id $nic.Id
-  
+
+Write-Host "Create VM..."
 #Create the virtual machine with Managed Disk attached  
 New-AzureRmVM -VM $targetVirtualMachine -ResourceGroupName $resourceGroupNameCloned -Location $location
-  
-#Remove the OS disk snapshot
+ 
+Write-Host "Clean up snapshots..."
+#Remove the OS disk snapshots
 Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupName -SnapshotName $snapshotNameOS -Force
+Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupName -SnapshotName $snapshotNameData0 -Force
+Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupName -SnapshotName $snapshotNameData1 -Force
