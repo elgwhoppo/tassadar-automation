@@ -1,6 +1,6 @@
 #This script will clone a VM from a source RG and VNet to a destination RG and VNet. 
 
-#New VM Name; same network. Same OS Disk. 
+#New VM Name; same network. Same OS Disk and SKU for data disks. 
 
 #Note!! The 
 
@@ -59,12 +59,6 @@ $diskNameData1 = $targetVirtualMachineName + '_DataDisk1'
 #Operating System Type (-Windows/-Linux)  
 $targetOStype = "-Linux"
   
-#Storage type for the desired cloned Managed Disk (Available values are Standard_LRS, Premium_LRS, StandardSSD_LRS, and UltraSSD_LRS)
-#https://learn.microsoft.com/en-us/powershell/module/azurerm.compute/new-azurermdiskconfig?view=azurermps-6.13.0#-skuname
-$storageTypeOS = 'Standard_LRS'
-$storageTypeData0 = 'Premium_LRS'
-$storageTypeData1 = 'Premium_LRS'
-  
 #Size of the Virtual Machine (https://docs.microsoft.com/en-us/azure/virtual-machines/windows/sizes)  
 # to get powershell friendly names of the sizes for each region:   az vm list-sizes --location "eastus" --output table
 # to get powershell friendly names of the regions:                 Get-AzLocation | select displayname,location
@@ -120,15 +114,19 @@ $snapshotData1config = New-AzSnapshotConfig -SourceUri $sourceVirtualMachine.Sto
 $snapshotData1 = New-AzSnapshot -Snapshot $snapshotData1config -SnapshotName $snapshotNameData1 -ResourceGroupName $resourceGroupNameCloned
 
 Write-Host "Creating managed disks..."
+#Get the type of disk that should be used from the source VM
+$storageTypeOS = az disk show --name $diskNameOS --resource-group $resourceGroupName --query sku.name
 #Create a new OS Managed Disk from the Snapshot
 $diskOS = New-AzureRmDiskConfig -AccountType $storageTypeOS -DiskSizeGB $diskSizeOS -Location $location -CreateOption Copy -SourceResourceId $snapshotOS.Id
 $diskOS = New-AzureRmDisk -Disk $diskOS -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameOS
 
 #Create a new Data Disk 0 from the Snapshot
+$storageTypeData0 = az disk show --name $diskNameData0 --resource-group $resourceGroupName --query sku.name
 $diskData0 = New-AzureRmDiskConfig -AccountType $storageTypeData0 -DiskSizeGB $diskSizeData0 -Location $location -CreateOption Copy -SourceResourceId $snapshotData0.Id
 $diskData0 = New-AzureRmDisk -Disk $diskData0 -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameData0
 
 #Create a new Data Disk 1 from the Snapshot
+$storageTypeData1 = az disk show --name $diskNameData1 --resource-group $resourceGroupName --query sku.name
 $diskData1 = New-AzureRmDiskConfig -AccountType $storageTypeData1 -DiskSizeGB $diskSizeData1 -Location $location -CreateOption Copy -SourceResourceId $snapshotData1.Id
 $diskData1 = New-AzureRmDisk -Disk $diskData1 -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameData1
 
