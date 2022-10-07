@@ -1,10 +1,5 @@
 #This script will clone a VM from a source RG and VNet to a destination RG and VNet. 
-
 #New VM Name; same network. Same OS Disk and SKU for data disks. 
-
-#Note!! The 
-
-#Todo: Check if snapshots exist with the same name 
 
 #******************************************
 # Virtual Machine: Source Variables
@@ -48,19 +43,11 @@ $resourceGroupNameCloned = 'bubble-sles-tester'
 #Names, IP, and Pre-existing Storage Account for Destination VM
 $targetVirtualMachineName = 'cloned-sles-tester'
 $targetVirtualMachineIP = '159.97.56.16'
-#$cloneToStorageAccountName = 'azrcusdrilldr'
-# ^ not needed
 
 #Name of the destination Managed Disks
 $diskNameOS = $targetVirtualMachineName + '_OsDisk'
 $diskNameData0 = $targetVirtualMachineName + '_DataDisk0'
 $diskNameData1 = $targetVirtualMachineName + '_DataDisk1'
-
-#Storage type for the desired cloned Managed Disk (Available values are Standard_LRS, Premium_LRS, StandardSSD_LRS, and UltraSSD_LRS)
-#https://learn.microsoft.com/en-us/powershell/module/azurerm.compute/new-azurermdiskconfig?view=azurermps-6.13.0#-skuname
-#$storageTypeOS = 'Standard_LRS'
-#$storageTypeData0 = 'Premium_LRS'
-#$storageTypeData1 = 'Premium_LRS'
 
 #Operating System Type (-Windows/-Linux)  
 $targetOStype = "-Linux"
@@ -78,7 +65,7 @@ $targetVirtualMachineSize = 'Standard_B2ms'
 # Begin Actionable Items 
 #*********************************
 
-Write-Host "Now creating" $targetVirtualMachineName "..."
+Write-Host "Now creating" $targetVirtualMachineName " from source VM " $sourceVirtualMachineName "..."
 #Get the existing VM from which to clone from  
 $sourceVirtualMachine = Get-AzVM -ResourceGroupName $resourceGroupName -Name $sourceVirtualMachineName  
 
