@@ -56,6 +56,12 @@ $diskNameOS = $targetVirtualMachineName + '_OsDisk'
 $diskNameData0 = $targetVirtualMachineName + '_DataDisk0'
 $diskNameData1 = $targetVirtualMachineName + '_DataDisk1'
 
+#Storage type for the desired cloned Managed Disk (Available values are Standard_LRS, Premium_LRS, StandardSSD_LRS, and UltraSSD_LRS)
+#https://learn.microsoft.com/en-us/powershell/module/azurerm.compute/new-azurermdiskconfig?view=azurermps-6.13.0#-skuname
+#$storageTypeOS = 'Standard_LRS'
+#$storageTypeData0 = 'Premium_LRS'
+#$storageTypeData1 = 'Premium_LRS'
+
 #Operating System Type (-Windows/-Linux)  
 $targetOStype = "-Linux"
   
@@ -115,18 +121,18 @@ $snapshotData1 = New-AzSnapshot -Snapshot $snapshotData1config -SnapshotName $sn
 
 Write-Host "Creating managed disks..."
 #Get the type of disk that should be used from the source VM
-$storageTypeOS = az disk show --name $diskNameOS --resource-group $resourceGroupName --query sku.name
+$storageTypeOS = az disk show --name $diskNameOS --resource-group $resourceGroupName --query sku.name | ConvertFrom-Json
 #Create a new OS Managed Disk from the Snapshot
 $diskOS = New-AzureRmDiskConfig -AccountType $storageTypeOS -DiskSizeGB $diskSizeOS -Location $location -CreateOption Copy -SourceResourceId $snapshotOS.Id
 $diskOS = New-AzureRmDisk -Disk $diskOS -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameOS
 
 #Create a new Data Disk 0 from the Snapshot
-$storageTypeData0 = az disk show --name $diskNameData0 --resource-group $resourceGroupName --query sku.name
+$storageTypeData0 = az disk show --name $diskNameData0 --resource-group $resourceGroupName --query sku.name | ConvertFrom-Json
 $diskData0 = New-AzureRmDiskConfig -AccountType $storageTypeData0 -DiskSizeGB $diskSizeData0 -Location $location -CreateOption Copy -SourceResourceId $snapshotData0.Id
 $diskData0 = New-AzureRmDisk -Disk $diskData0 -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameData0
 
 #Create a new Data Disk 1 from the Snapshot
-$storageTypeData1 = az disk show --name $diskNameData1 --resource-group $resourceGroupName --query sku.name
+$storageTypeData1 = az disk show --name $diskNameData1 --resource-group $resourceGroupName --query sku.name | ConvertFrom-Json
 $diskData1 = New-AzureRmDiskConfig -AccountType $storageTypeData1 -DiskSizeGB $diskSizeData1 -Location $location -CreateOption Copy -SourceResourceId $snapshotData1.Id
 $diskData1 = New-AzureRmDisk -Disk $diskData1 -ResourceGroupName $resourceGroupNameCloned -DiskName $diskNameData1
 
