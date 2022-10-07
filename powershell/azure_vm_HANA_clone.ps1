@@ -11,7 +11,6 @@
 #******************************************
 
 #Subscription you are working within
-# W.R. Grace Prod Subscription ID 
 #$subscriptionID = '2015dfd1-6123-45b5-9adb-f476f4824e5c'
 #advizexdev
 $subscriptionID = '27b24066-6036-4904-9761-1441c2f0ffaa'
