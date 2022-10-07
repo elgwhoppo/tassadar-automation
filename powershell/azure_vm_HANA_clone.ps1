@@ -159,3 +159,7 @@ Write-Host "Clean up snapshots..."
 Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupNameCloned -SnapshotName $snapshotNameOS -Force
 Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupNameCloned -SnapshotName $snapshotNameData0 -Force
 Remove-AzureRmSnapshot -ResourceGroupName $resourceGroupNameCloned -SnapshotName $snapshotNameData1 -Force
+
+#Check to see if the VM was created
+$vmcreated = az vm show --name $targetVirtualMachineName --resource-group $resourceGroupNameCloned --output table
+If ($vmcreated) {Write-Host "The following VM was created: "; $vmcreated} else {Write-Host "VM with name $targetVirtualMachineName was not found after script was run; something went wrong."}
